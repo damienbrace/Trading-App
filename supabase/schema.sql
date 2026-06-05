@@ -12,14 +12,17 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own"
   on public.profiles for select
   using (id = auth.uid());
 
+drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own"
   on public.profiles for insert
   with check (id = auth.uid());
 
+drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own"
   on public.profiles for update
   using (id = auth.uid())
@@ -38,19 +41,23 @@ create index if not exists journals_user_id_idx on public.journals(user_id);
 
 alter table public.journals enable row level security;
 
+drop policy if exists "journals_select_own" on public.journals;
 create policy "journals_select_own"
   on public.journals for select
   using (user_id = auth.uid());
 
+drop policy if exists "journals_insert_own" on public.journals;
 create policy "journals_insert_own"
   on public.journals for insert
   with check (user_id = auth.uid());
 
+drop policy if exists "journals_update_own" on public.journals;
 create policy "journals_update_own"
   on public.journals for update
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "journals_delete_own" on public.journals;
 create policy "journals_delete_own"
   on public.journals for delete
   using (user_id = auth.uid());
@@ -67,14 +74,17 @@ create index if not exists csv_imports_user_id_idx on public.csv_imports(user_id
 
 alter table public.csv_imports enable row level security;
 
+drop policy if exists "csv_imports_select_own" on public.csv_imports;
 create policy "csv_imports_select_own"
   on public.csv_imports for select
   using (user_id = auth.uid());
 
+drop policy if exists "csv_imports_insert_own" on public.csv_imports;
 create policy "csv_imports_insert_own"
   on public.csv_imports for insert
   with check (user_id = auth.uid());
 
+drop policy if exists "csv_imports_delete_own" on public.csv_imports;
 create policy "csv_imports_delete_own"
   on public.csv_imports for delete
   using (user_id = auth.uid());
@@ -112,19 +122,23 @@ create index if not exists trades_journal_id_idx on public.trades(journal_id);
 
 alter table public.trades enable row level security;
 
+drop policy if exists "trades_select_own" on public.trades;
 create policy "trades_select_own"
   on public.trades for select
   using (user_id = auth.uid());
 
+drop policy if exists "trades_insert_own" on public.trades;
 create policy "trades_insert_own"
   on public.trades for insert
   with check (user_id = auth.uid());
 
+drop policy if exists "trades_update_own" on public.trades;
 create policy "trades_update_own"
   on public.trades for update
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "trades_delete_own" on public.trades;
 create policy "trades_delete_own"
   on public.trades for delete
   using (user_id = auth.uid());
@@ -146,19 +160,23 @@ create index if not exists cash_flows_user_occurred_idx on public.cash_flows(use
 
 alter table public.cash_flows enable row level security;
 
+drop policy if exists "cash_flows_select_own" on public.cash_flows;
 create policy "cash_flows_select_own"
   on public.cash_flows for select
   using (user_id = auth.uid());
 
+drop policy if exists "cash_flows_insert_own" on public.cash_flows;
 create policy "cash_flows_insert_own"
   on public.cash_flows for insert
   with check (user_id = auth.uid());
 
+drop policy if exists "cash_flows_update_own" on public.cash_flows;
 create policy "cash_flows_update_own"
   on public.cash_flows for update
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "cash_flows_delete_own" on public.cash_flows;
 create policy "cash_flows_delete_own"
   on public.cash_flows for delete
   using (user_id = auth.uid());
@@ -180,19 +198,23 @@ create index if not exists statement_balances_user_recorded_idx
 
 alter table public.statement_balances enable row level security;
 
+drop policy if exists "statement_balances_select_own" on public.statement_balances;
 create policy "statement_balances_select_own"
   on public.statement_balances for select
   using (user_id = auth.uid());
 
+drop policy if exists "statement_balances_insert_own" on public.statement_balances;
 create policy "statement_balances_insert_own"
   on public.statement_balances for insert
   with check (user_id = auth.uid());
 
+drop policy if exists "statement_balances_update_own" on public.statement_balances;
 create policy "statement_balances_update_own"
   on public.statement_balances for update
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "statement_balances_delete_own" on public.statement_balances;
 create policy "statement_balances_delete_own"
   on public.statement_balances for delete
   using (user_id = auth.uid());
@@ -202,6 +224,7 @@ insert into storage.buckets (id, name, public)
 values ('csv-imports', 'csv-imports', false)
 on conflict (id) do update set public = false;
 
+drop policy if exists "csv_storage_select_own" on storage.objects;
 create policy "csv_storage_select_own"
   on storage.objects for select
   using (
@@ -209,6 +232,7 @@ create policy "csv_storage_select_own"
     and auth.uid()::text = (storage.foldername(name))[1]
   );
 
+drop policy if exists "csv_storage_insert_own" on storage.objects;
 create policy "csv_storage_insert_own"
   on storage.objects for insert
   with check (
@@ -216,6 +240,7 @@ create policy "csv_storage_insert_own"
     and auth.uid()::text = (storage.foldername(name))[1]
   );
 
+drop policy if exists "csv_storage_delete_own" on storage.objects;
 create policy "csv_storage_delete_own"
   on storage.objects for delete
   using (

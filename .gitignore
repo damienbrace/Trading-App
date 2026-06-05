@@ -1,0 +1,8 @@
+work/
+.agents/
+.codex/
+
+*.log
+*.tmp
+*.bak
+

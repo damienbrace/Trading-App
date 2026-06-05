@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Multi-Currency Trading Journal</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div id="appShell" class="app-shell">
+      <aside class="icon-rail" aria-label="Navigation">
+        <div class="brand-mark">TJ</div>
+        <button id="journalViewBtn" class="rail-view active" type="button" title="Journal" aria-label="Journal" data-view="journal">▤</button>
+        <button id="reportsViewBtn" class="rail-view" type="button" title="Reports" aria-label="Reports" data-view="reports">◔</button>
+        <button type="button" title="Rules">◎</button>
+        <button type="button" title="Settings">⚙</button>
+        <button class="rail-bottom" type="button" title="Sync">⟳</button>
+      </aside>
+
+      <aside id="reportsSubnav" class="reports-subnav" aria-label="Reports" hidden>
+        <h2>Reports</h2>
+        <button id="overviewReportBtn" class="report-subitem active" type="button" data-report="overview">
+          <span>▤</span>
+          Overview
+        </button>
+        <button id="calendarReportBtn" class="report-subitem" type="button" data-report="calendar">
+          <span>▦</span>
+          Calendar
+        </button>
+        <button id="weekdayReportBtn" class="report-subitem" type="button" data-report="weekday">
+          <span>◷</span>
+          Weekday
+        </button>
+        <button id="sizeReportBtn" class="report-subitem" type="button" data-report="size">
+          <span>▥</span>
+          Trade Size
+        </button>
+      </aside>
+
+      <main class="workspace">
+        <header class="filterbar">
+          <button class="icon-filter" type="button" title="Filters">◆</button>
+          <select id="currencySelect" aria-label="Portfolio"></select>
+          <div class="symbol-filter">
+            <select id="symbolSelect" aria-label="Symbol">
+              <option value="">All symbols</option>
+            </select>
+          </div>
+          <select aria-label="Setup">
+            <option>Setup</option>
+          </select>
+          <select aria-label="Side">
+            <option>Side</option>
+          </select>
+          <select id="resultFilter" aria-label="Status">
+            <option value="all">Status</option>
+            <option value="wins">Wins only</option>
+            <option value="losses">Losses only</option>
+          </select>
+          <select id="dateFilter" aria-label="Date">
+            <option value="all">All dates</option>
+            <option value="today">Today</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="3m">Last 3 months</option>
+            <option value="6m">Last 6 months</option>
+            <option value="month">This month</option>
+            <option value="year">This year</option>
+            <option value="custom">Custom range</option>
+          </select>
+          <div id="customDateRange" class="date-range" hidden>
+            <input id="dateFrom" type="date" aria-label="From date">
+            <input id="dateTo" type="date" aria-label="To date">
+          </div>
+          <button class="filter-chip" type="button">Custom Tags</button>
+          <button class="filter-chip" type="button">More...</button>
+          <label class="add-button" for="csvInput">
+            Add Trade
+            <input id="csvInput" type="file" accept=".csv,text/csv">
+          </label>
+          <button id="sampleBtn" class="icon-action" type="button" title="Load sample trades">↻</button>
+          <button id="resetBtn" class="icon-action muted-action" type="button" title="Clear local data">×</button>
+        </header>
+
+        <section id="metricsGrid" class="metrics-grid" aria-label="Journal metrics">
+          <article class="metric hero-metric">
+            <span>Accumulative Return Net <b id="journalTitle">No trades yet</b></span>
+            <strong id="netPnl">-</strong>
+            <canvas id="equityChart" width="420" height="76"></canvas>
+          </article>
+          <article class="metric">
+            <span>Profit/Loss Ratio</span>
+            <strong id="profitFactor">-</strong>
+            <small id="chartSubtitle">P&L in journal currency</small>
+          </article>
+          <article class="metric donut-metric">
+            <span>Win %</span>
+            <strong id="winRate">-</strong>
+            <div class="donut" aria-hidden="true"></div>
+          </article>
+          <article class="metric compact-only">
+            <span>Avg Return</span>
+            <strong id="avgTrade">-</strong>
+          </article>
+          <article class="metric compact-only">
+            <span>Drawdown</span>
+            <strong id="maxDrawdown">-</strong>
+          </article>
+          <article class="metric compact-only">
+            <span>Trades</span>
+            <strong id="tradeCount">-</strong>
+          </article>
+          <article class="metric compact-only">
+            <span>Account Balance</span>
+            <strong id="accountBalance">-</strong>
+          </article>
+        </section>
+
+        <section class="journal-layout">
+          <section class="table-panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><span class="check"></span></th>
+                    <th></th>
+                    <th><button class="sort-button" type="button" data-sort="status">Status</button></th>
+                    <th><button class="sort-button" type="button" data-sort="side">Side</button></th>
+                    <th><button class="sort-button" type="button" data-sort="symbol">Symbol</button></th>
+                    <th><button class="sort-button" type="button" data-sort="currency">CCY</button></th>
+                    <th><button class="sort-button" type="button" data-sort="openDate">Open Date</button></th>
+                    <th><button class="sort-button" type="button" data-sort="entry">Entry</button></th>
+                    <th><button class="sort-button" type="button" data-sort="qty">Size</button></th>
+                    <th><button class="sort-button" type="button" data-sort="closeDate">Close Date</button></th>
+                    <th><button class="sort-button" type="button" data-sort="exit">Exit</button></th>
+                    <th><button class="sort-button" type="button" data-sort="cost">Cost</button></th>
+                    <th><button class="sort-button" type="button" data-sort="sourcePnl">Original P/L</button></th>
+                    <th><button class="sort-button" type="button" data-sort="pnl">Net Return</button></th>
+                    <th><button class="sort-button" type="button" data-sort="returnPct">Net Return %</button></th>
+                    <th><button class="sort-button" type="button" data-sort="setup">Setups</button></th>
+                    <th><button class="sort-button" type="button" data-sort="notes">Note</button></th>
+                  </tr>
+                </thead>
+                <tbody id="tradeRows"></tbody>
+              </table>
+            </div>
+            <footer class="statusbar">
+              <span id="tableSubtitle">Import a CSV to begin</span>
+              <span>Return: <b id="statusReturn">-</b></span>
+              <button id="exportBtn" class="text-button" type="button">Export active journal</button>
+            </footer>
+          </section>
+
+          <section id="overviewReport" class="overview-report" hidden>
+            <header class="overview-hero">
+              <div class="report-controls">
+                <button class="active" type="button" data-overview-chart-type="line">Line</button>
+                <button type="button" data-overview-chart-type="bar">Bar</button>
+                <button type="button">By Trade</button>
+                <button type="button">Benchmark</button>
+              </div>
+              <div class="overview-hero-value">
+                <span id="overviewGrossLabel">Accumulative Return Gross $</span>
+                <strong id="overviewGrossReturn">-</strong>
+              </div>
+              <div id="overviewChart" class="overview-chart" role="img" aria-label="Accumulative return chart"></div>
+            </header>
+
+            <div id="overviewSections" class="overview-sections"></div>
+          </section>
+
+          <section id="calendarView" class="calendar-panel" hidden>
+            <header class="calendar-header">
+              <div>
+                <h2 id="calendarTitle">Calendar</h2>
+                <p id="calendarSummary">Daily return by close date</p>
+              </div>
+              <div class="calendar-controls">
+                <button id="calendarPrev" type="button" title="Previous month">‹</button>
+                <button id="calendarToday" type="button">Latest</button>
+                <button id="calendarNext" type="button" title="Next month">›</button>
+              </div>
+            </header>
+            <div class="calendar-weekdays" aria-hidden="true">
+              <span>S</span>
+              <span>M</span>
+              <span>T</span>
+              <span>W</span>
+              <span>T</span>
+              <span>F</span>
+              <span>S</span>
+              <span>Total</span>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+            <footer id="calendarMonthTotal" class="calendar-month-total"></footer>
+          </section>
+
+          <section id="weekdayReport" class="weekday-report" hidden>
+            <div class="weekday-main">
+              <div class="weekday-controls" aria-label="Weekday report metrics">
+                <button class="active" type="button">P&amp;L</button>
+                <label><input type="checkbox"> Trades</label>
+                <label><input type="checkbox"> Size</label>
+                <label><input type="checkbox"> Profit Factor</label>
+                <label><input type="checkbox"> W vs L</label>
+              </div>
+              <div id="weekdayChart" class="weekday-chart"></div>
+              <div class="weekday-table-wrap">
+                <table class="weekday-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Return $</th>
+                      <th>Profit Factor</th>
+                      <th>Return Win</th>
+                      <th>Win %</th>
+                      <th>Return Loss</th>
+                      <th>Return Others</th>
+                      <th>Trades</th>
+                      <th>Size</th>
+                      <th>Avg Return</th>
+                      <th>Avg Profit</th>
+                      <th>Avg Loser</th>
+                    </tr>
+                  </thead>
+                  <tbody id="weekdayRows"></tbody>
+                </table>
+              </div>
+            </div>
+            <aside id="weekdayInsights" class="weekday-insights"></aside>
+          </section>
+
+          <section id="sizeReport" class="weekday-report" hidden>
+            <div class="weekday-main">
+              <div class="weekday-controls" aria-label="Trade size report metrics">
+                <button class="active" type="button">P&amp;L</button>
+                <label><input type="checkbox"> Trades</label>
+                <label><input type="checkbox"> Avg Return</label>
+                <label><input type="checkbox"> Profit Factor</label>
+                <label><input type="checkbox"> W vs L</label>
+              </div>
+              <div id="sizeChart" class="weekday-chart"></div>
+              <div class="weekday-table-wrap">
+                <table class="weekday-table">
+                  <thead>
+                    <tr>
+                      <th>Size Band</th>
+                      <th>Return $</th>
+                      <th>Profit Factor</th>
+                      <th>Return Win</th>
+                      <th>Win %</th>
+                      <th>Return Loss</th>
+                      <th>Trades</th>
+                      <th>Total Cost</th>
+                      <th>Avg Size</th>
+                      <th>Avg Return</th>
+                      <th>Avg Profit</th>
+                      <th>Avg Loser</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sizeRows"></tbody>
+                </table>
+              </div>
+              <div id="sizeDrilldown" class="size-drilldown"></div>
+            </div>
+            <aside id="sizeInsights" class="weekday-insights"></aside>
+          </section>
+
+          <aside class="inspector">
+            <section class="side-panel performance-panel">
+              <h3>Account Performance</h3>
+              <div class="mini-stats">
+                <span>Avg Return <b id="sideAvgReturn">-</b></span>
+                <span>Avg Return % <b id="sideAvgPct">-</b></span>
+                <span>Win % <b id="sideWin">-</b></span>
+              </div>
+              <canvas id="performanceChart" width="330" height="180"></canvas>
+            </section>
+            <section class="side-panel">
+              <h3>Setups</h3>
+              <div id="setupList" class="setup-list"></div>
+            </section>
+            <section class="side-panel">
+              <h3>Mistakes</h3>
+              <div id="mistakeList" class="setup-list"></div>
+            </section>
+            <div id="journalTabs" class="journal-tabs"></div>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

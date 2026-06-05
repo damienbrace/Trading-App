@@ -1,8 +1,8 @@
 work/
 .agents/
 .codex/
+dist/
 
 *.log
 *.tmp
 *.bak
-

@@ -56,6 +56,9 @@ const els = {
   csvInput: document.querySelector("#csvInput"),
   sampleBtn: document.querySelector("#sampleBtn"),
   resetBtn: document.querySelector("#resetBtn"),
+  cloudToggleBtn: document.querySelector("#cloudToggleBtn"),
+  cloudToggleRailBtn: document.querySelector("#cloudToggleRailBtn"),
+  authPanel: document.querySelector("#authPanel"),
   authEmail: document.querySelector("#authEmail"),
   authPassword: document.querySelector("#authPassword"),
   signInBtn: document.querySelector("#signInBtn"),
@@ -757,6 +760,11 @@ function restoreAuthSession() {
 function renderAuthState(message = "") {
   if (!els.authStatus) return;
   const signedIn = Boolean(authSession?.user?.email);
+  if (els.cloudToggleBtn) {
+    els.cloudToggleBtn.classList.toggle("is-active", signedIn);
+    els.cloudToggleBtn.textContent = signedIn ? "Cloud On" : "Cloud";
+  }
+  if (els.cloudToggleRailBtn) els.cloudToggleRailBtn.classList.toggle("active", signedIn);
   if (els.authEmail) els.authEmail.hidden = signedIn;
   if (els.authPassword) els.authPassword.hidden = signedIn;
   if (els.signInBtn) els.signInBtn.hidden = signedIn;
@@ -774,6 +782,12 @@ function authCredentials() {
   const password = els.authPassword?.value || "";
   if (!email || !password) throw new Error("Enter your email and password first.");
   return { email, password };
+}
+
+function toggleAuthPanel(forceOpen = null) {
+  if (!els.authPanel) return;
+  const shouldOpen = forceOpen === null ? !els.authPanel.classList.contains("is-open") : forceOpen;
+  els.authPanel.classList.toggle("is-open", shouldOpen);
 }
 
 async function signIn() {
@@ -816,7 +830,10 @@ async function signOut() {
 }
 
 function requireAuthUser() {
-  if (!authSession?.user?.id || !authSession?.access_token) throw new Error("Sign in before syncing.");
+  if (!authSession?.user?.id || !authSession?.access_token) {
+    toggleAuthPanel(true);
+    throw new Error("Sign in before syncing.");
+  }
   return authSession.user;
 }
 
@@ -2268,6 +2285,8 @@ els.signUpBtn?.addEventListener("click", () => runAuthAction(signUp));
 els.signOutBtn?.addEventListener("click", () => runAuthAction(signOut));
 els.syncUpBtn?.addEventListener("click", () => runAuthAction(syncLocalToCloud));
 els.syncDownBtn?.addEventListener("click", () => runAuthAction(loadCloudToLocal));
+els.cloudToggleBtn?.addEventListener("click", () => toggleAuthPanel());
+els.cloudToggleRailBtn?.addEventListener("click", () => toggleAuthPanel());
 els.exportBtn.addEventListener("click", exportActiveJournal);
 els.currencySelect.addEventListener("change", (event) => {
   state.activeCurrency = event.target.value;

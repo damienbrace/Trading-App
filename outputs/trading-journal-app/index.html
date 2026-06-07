@@ -14,7 +14,7 @@
         <button id="reportsViewBtn" class="rail-view" type="button" title="Reports" aria-label="Reports" data-view="reports">◔</button>
         <button type="button" title="Rules">◎</button>
         <button type="button" title="Settings">⚙</button>
-        <button class="rail-bottom" type="button" title="Sync">⟳</button>
+        <button id="cloudToggleRailBtn" class="rail-bottom" type="button" title="Cloud Login">⟳</button>
       </aside>
 
       <aside id="reportsSubnav" class="reports-subnav" aria-label="Reports" hidden>
@@ -74,11 +74,13 @@
           </div>
           <button class="filter-chip" type="button">Custom Tags</button>
           <button class="filter-chip" type="button">More...</button>
+          <button id="cloudToggleBtn" class="cloud-button" type="button">Cloud</button>
           <label class="add-button" for="csvInput">
             Add Trade
             <input id="csvInput" type="file" accept=".csv,text/csv">
           </label>
           <div id="authPanel" class="auth-panel">
+            <strong>Cloud Sync</strong>
             <input id="authEmail" type="email" placeholder="Email" autocomplete="email" aria-label="Email">
             <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password">
             <button id="signInBtn" type="button">Sign In</button>

@@ -52,6 +52,12 @@ let state = {
 };
 
 const els = {
+  authGate: document.querySelector("#authGate"),
+  gateEmail: document.querySelector("#gateEmail"),
+  gatePassword: document.querySelector("#gatePassword"),
+  gateSignInBtn: document.querySelector("#gateSignInBtn"),
+  gateSignUpBtn: document.querySelector("#gateSignUpBtn"),
+  gateAuthStatus: document.querySelector("#gateAuthStatus"),
   appShell: document.querySelector("#appShell"),
   csvInput: document.querySelector("#csvInput"),
   sampleBtn: document.querySelector("#sampleBtn"),
@@ -758,8 +764,9 @@ function restoreAuthSession() {
 }
 
 function renderAuthState(message = "") {
-  if (!els.authStatus) return;
   const signedIn = Boolean(authSession?.user?.email);
+  if (els.appShell) els.appShell.hidden = !signedIn;
+  if (els.authGate) els.authGate.hidden = signedIn;
   if (els.cloudToggleBtn) {
     els.cloudToggleBtn.classList.toggle("is-active", signedIn);
     els.cloudToggleBtn.textContent = signedIn ? "Cloud On" : "Cloud";
@@ -772,14 +779,19 @@ function renderAuthState(message = "") {
   if (els.syncUpBtn) els.syncUpBtn.hidden = !signedIn;
   if (els.syncDownBtn) els.syncDownBtn.hidden = !signedIn;
   if (els.signOutBtn) els.signOutBtn.hidden = !signedIn;
-  els.authStatus.textContent = message || (signedIn
+  const statusText = message || (signedIn
     ? authSession.user.email
-    : supabaseConfigured() ? "Cloud ready" : "Local only");
+    : supabaseConfigured() ? "Enter your details to continue." : "Supabase config is missing. Check Vercel environment variables.");
+  if (els.authStatus) els.authStatus.textContent = statusText;
+  if (els.gateAuthStatus) els.gateAuthStatus.textContent = statusText;
 }
 
 function authCredentials() {
-  const email = cleanCell(els.authEmail?.value || "");
-  const password = els.authPassword?.value || "";
+  const gateVisible = els.authGate && !els.authGate.hidden;
+  const emailInput = gateVisible ? els.gateEmail : els.authEmail;
+  const passwordInput = gateVisible ? els.gatePassword : els.authPassword;
+  const email = cleanCell(emailInput?.value || "");
+  const password = passwordInput?.value || "";
   if (!email || !password) throw new Error("Enter your email and password first.");
   return { email, password };
 }
@@ -799,6 +811,7 @@ async function signIn() {
   });
   saveAuthSession(session);
   if (els.authPassword) els.authPassword.value = "";
+  if (els.gatePassword) els.gatePassword.value = "";
   renderAuthState("Signed in");
 }
 
@@ -816,6 +829,7 @@ async function signUp() {
     renderAuthState("Check your email");
   }
   if (els.authPassword) els.authPassword.value = "";
+  if (els.gatePassword) els.gatePassword.value = "";
 }
 
 async function signOut() {
@@ -2282,6 +2296,8 @@ els.resetBtn.addEventListener("click", () => {
 });
 els.signInBtn?.addEventListener("click", () => runAuthAction(signIn));
 els.signUpBtn?.addEventListener("click", () => runAuthAction(signUp));
+els.gateSignInBtn?.addEventListener("click", () => runAuthAction(signIn));
+els.gateSignUpBtn?.addEventListener("click", () => runAuthAction(signUp));
 els.signOutBtn?.addEventListener("click", () => runAuthAction(signOut));
 els.syncUpBtn?.addEventListener("click", () => runAuthAction(syncLocalToCloud));
 els.syncDownBtn?.addEventListener("click", () => runAuthAction(loadCloudToLocal));

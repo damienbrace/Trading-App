@@ -33,6 +33,109 @@ input {
   font: inherit;
 }
 
+.auth-gate {
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+  place-items: center;
+  background:
+    linear-gradient(rgba(10, 15, 24, .84), rgba(10, 15, 24, .92)),
+    radial-gradient(circle at 30% 20%, rgba(0, 213, 216, .12), transparent 28%),
+    #0d121d;
+}
+
+.auth-gate[hidden] {
+  display: none;
+}
+
+.auth-card {
+  display: grid;
+  gap: 12px;
+  width: min(420px, 100%);
+  padding: 28px;
+  background: #171d2b;
+  border: 1px solid #27334a;
+  border-radius: 6px;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, .42);
+}
+
+.auth-brand {
+  margin-bottom: 2px;
+}
+
+.auth-card h1 {
+  margin: 0;
+  color: #f3f7ff;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.auth-card p {
+  margin: 0 0 6px;
+  color: #9ca8ba;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.auth-card label {
+  display: grid;
+  gap: 6px;
+  color: #aeb8ca;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.auth-card input {
+  height: 38px;
+  padding: 0 12px;
+  color: #e7ecf5;
+  background: #202842;
+  border: 1px solid #33405b;
+  border-radius: 3px;
+  font-size: 14px;
+  outline: 0;
+}
+
+.auth-card input:focus {
+  border-color: var(--cyan);
+}
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.auth-actions button {
+  height: 36px;
+  color: #08121e;
+  background: var(--cyan);
+  border: 0;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.auth-actions button + button {
+  color: #dce3ef;
+  background: #202842;
+  border: 1px solid #33405b;
+}
+
+.auth-card span {
+  min-height: 17px;
+  color: #8f99aa;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-shell[hidden] {
+  display: none;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);

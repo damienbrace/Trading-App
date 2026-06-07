@@ -7,6 +7,26 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <section id="authGate" class="auth-gate">
+      <div class="auth-card">
+        <div class="brand-mark auth-brand">TJ</div>
+        <h1>Trading Journal</h1>
+        <p>Sign in to access your private trading journal and cloud sync.</p>
+        <label>
+          Email
+          <input id="gateEmail" type="email" autocomplete="email" placeholder="you@example.com">
+        </label>
+        <label>
+          Password
+          <input id="gatePassword" type="password" autocomplete="current-password" placeholder="Password">
+        </label>
+        <div class="auth-actions">
+          <button id="gateSignInBtn" type="button">Sign In</button>
+          <button id="gateSignUpBtn" type="button">Create Account</button>
+        </div>
+        <span id="gateAuthStatus">Enter your details to continue.</span>
+      </div>
+    </section>
     <div id="appShell" class="app-shell">
       <aside class="icon-rail" aria-label="Navigation">
         <div class="brand-mark">TJ</div>

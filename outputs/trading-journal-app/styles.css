@@ -233,6 +233,51 @@ input {
   display: none;
 }
 
+.auth-panel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.auth-panel input {
+  width: 118px;
+  height: 28px;
+  padding: 0 8px;
+  color: #dce3ef;
+  background: #202842;
+  border: 1px solid #2b3652;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.auth-panel button {
+  height: 28px;
+  padding: 0 9px;
+  color: #dce3ef;
+  background: #202842;
+  border: 1px solid #33405b;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.auth-panel button:hover {
+  border-color: var(--cyan);
+}
+
+.auth-panel span {
+  max-width: 150px;
+  overflow: hidden;
+  color: #8f99aa;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .icon-action {
   width: 34px;
   color: white;

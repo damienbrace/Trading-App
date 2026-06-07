@@ -78,6 +78,16 @@
             Add Trade
             <input id="csvInput" type="file" accept=".csv,text/csv">
           </label>
+          <div id="authPanel" class="auth-panel">
+            <input id="authEmail" type="email" placeholder="Email" autocomplete="email" aria-label="Email">
+            <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password">
+            <button id="signInBtn" type="button">Sign In</button>
+            <button id="signUpBtn" type="button">Sign Up</button>
+            <button id="syncUpBtn" type="button" hidden>Sync Up</button>
+            <button id="syncDownBtn" type="button" hidden>Load Cloud</button>
+            <button id="signOutBtn" type="button" hidden>Sign Out</button>
+            <span id="authStatus">Local only</span>
+          </div>
           <button id="sampleBtn" class="icon-action" type="button" title="Load sample trades">↻</button>
           <button id="resetBtn" class="icon-action muted-action" type="button" title="Clear local data">×</button>
         </header>
@@ -290,6 +300,7 @@
       </main>
     </div>
 
+    <script src="env.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

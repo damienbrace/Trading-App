@@ -41,6 +41,19 @@ paid data API keys
 
 Service role and secret keys belong only in trusted server-side code such as Supabase Edge Functions or Vercel serverless functions.
 
+## Cloud Sync
+
+The app reads public Supabase config from a generated `env.js` file at build time.
+
+After adding the Vercel environment variables, redeploy the project. The top toolbar will show email/password controls:
+
+- `Sign Up` creates a Supabase Auth user.
+- `Sign In` signs in an existing user.
+- `Sync Up` uploads the current browser journal to Supabase.
+- `Load Cloud` replaces local browser data with the signed-in user's Supabase data.
+
+Cloud data is protected by Supabase Row Level Security. Users can only read or write rows where `user_id = auth.uid()`.
+
 ## Security Checklist
 
 - Keep Supabase Row Level Security enabled on every exposed table.

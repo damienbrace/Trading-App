@@ -1,9 +1,12 @@
 const STORAGE_KEY = "multiCurrencyTradingJournal.v2";
+const AUTH_STORAGE_KEY = "multiCurrencyTradingJournal.auth.v1";
 const AUD_VIEW = "__ALL_AUD__";
 const TARGET_CURRENCY = "AUD";
+const publicConfig = window.TRADING_APP_CONFIG || {};
 
 let fxStatus = "";
 let overviewChartConfig = null;
+let authSession = null;
 
 const aliases = {
   serial: ["serial", "id", "trade id", "transaction id", "order id", "ticket"],
@@ -53,6 +56,14 @@ const els = {
   csvInput: document.querySelector("#csvInput"),
   sampleBtn: document.querySelector("#sampleBtn"),
   resetBtn: document.querySelector("#resetBtn"),
+  authEmail: document.querySelector("#authEmail"),
+  authPassword: document.querySelector("#authPassword"),
+  signInBtn: document.querySelector("#signInBtn"),
+  signUpBtn: document.querySelector("#signUpBtn"),
+  syncUpBtn: document.querySelector("#syncUpBtn"),
+  syncDownBtn: document.querySelector("#syncDownBtn"),
+  signOutBtn: document.querySelector("#signOutBtn"),
+  authStatus: document.querySelector("#authStatus"),
   exportBtn: document.querySelector("#exportBtn"),
   currencySelect: document.querySelector("#currencySelect"),
   dateFilter: document.querySelector("#dateFilter"),
@@ -692,6 +703,282 @@ function calculateAccountBalance(trades) {
   const tradePnl = trades.reduce((sum, trade) => sum + trade.pnl, 0);
   const cashFlowTotal = activeCashFlows().reduce((sum, flow) => sum + cashFlowSignedAmount(flow), 0);
   return cashFlowTotal + tradePnl;
+}
+
+function supabaseConfigured() {
+  return Boolean(publicConfig.supabaseUrl && publicConfig.supabaseAnonKey);
+}
+
+function supabaseUrl(path) {
+  return `${String(publicConfig.supabaseUrl || "").replace(/\/+$/, "")}${path}`;
+}
+
+function authHeaders(includeBearer = true) {
+  const headers = {
+    apikey: publicConfig.supabaseAnonKey || "",
+    "Content-Type": "application/json"
+  };
+  if (includeBearer && authSession?.access_token) {
+    headers.Authorization = `Bearer ${authSession.access_token}`;
+  }
+  return headers;
+}
+
+async function supabaseRequest(path, options = {}) {
+  if (!supabaseConfigured()) throw new Error("Supabase is not configured in this deployment.");
+  const response = await fetch(supabaseUrl(path), {
+    method: options.method || "GET",
+    headers: { ...authHeaders(options.auth !== false), ...(options.headers || {}) },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!response.ok) throw new Error(data?.message || data?.error_description || data?.hint || "Supabase request failed.");
+  return data;
+}
+
+function saveAuthSession(session) {
+  authSession = session;
+  if (session) localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  else localStorage.removeItem(AUTH_STORAGE_KEY);
+  renderAuthState();
+}
+
+function restoreAuthSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || "null");
+    if (saved?.access_token) authSession = saved;
+  } catch {
+    authSession = null;
+  }
+  renderAuthState();
+}
+
+function renderAuthState(message = "") {
+  if (!els.authStatus) return;
+  const signedIn = Boolean(authSession?.user?.email);
+  if (els.authEmail) els.authEmail.hidden = signedIn;
+  if (els.authPassword) els.authPassword.hidden = signedIn;
+  if (els.signInBtn) els.signInBtn.hidden = signedIn;
+  if (els.signUpBtn) els.signUpBtn.hidden = signedIn;
+  if (els.syncUpBtn) els.syncUpBtn.hidden = !signedIn;
+  if (els.syncDownBtn) els.syncDownBtn.hidden = !signedIn;
+  if (els.signOutBtn) els.signOutBtn.hidden = !signedIn;
+  els.authStatus.textContent = message || (signedIn
+    ? authSession.user.email
+    : supabaseConfigured() ? "Cloud ready" : "Local only");
+}
+
+function authCredentials() {
+  const email = cleanCell(els.authEmail?.value || "");
+  const password = els.authPassword?.value || "";
+  if (!email || !password) throw new Error("Enter your email and password first.");
+  return { email, password };
+}
+
+async function signIn() {
+  renderAuthState("Signing in...");
+  const session = await supabaseRequest("/auth/v1/token?grant_type=password", {
+    method: "POST",
+    auth: false,
+    body: authCredentials()
+  });
+  saveAuthSession(session);
+  if (els.authPassword) els.authPassword.value = "";
+  renderAuthState("Signed in");
+}
+
+async function signUp() {
+  renderAuthState("Creating account...");
+  const session = await supabaseRequest("/auth/v1/signup", {
+    method: "POST",
+    auth: false,
+    body: authCredentials()
+  });
+  if (session?.access_token) {
+    saveAuthSession(session);
+    renderAuthState("Account created");
+  } else {
+    renderAuthState("Check your email");
+  }
+  if (els.authPassword) els.authPassword.value = "";
+}
+
+async function signOut() {
+  if (authSession?.access_token) {
+    try {
+      await supabaseRequest("/auth/v1/logout", { method: "POST" });
+    } catch {
+      // Local sign-out still matters if the network request fails.
+    }
+  }
+  saveAuthSession(null);
+}
+
+function requireAuthUser() {
+  if (!authSession?.user?.id || !authSession?.access_token) throw new Error("Sign in before syncing.");
+  return authSession.user;
+}
+
+function toIsoTimestamp(value) {
+  const time = tradeTime(value);
+  return time ? new Date(time).toISOString() : null;
+}
+
+function finiteOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function chunk(items, size = 200) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += size) chunks.push(items.slice(index, index + size));
+  return chunks;
+}
+
+async function upsertRows(table, rows, conflict) {
+  if (!rows.length) return;
+  for (const group of chunk(rows)) {
+    await supabaseRequest(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflict)}`, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: group
+    });
+  }
+}
+
+function tradeToCloudRow(trade, userId) {
+  return {
+    user_id: userId,
+    fingerprint: tradeFingerprint(trade),
+    serial: trade.serial || null,
+    symbol: trade.symbol || "Unknown",
+    side: trade.side || null,
+    opened_at: toIsoTimestamp(trade.openedAt || trade.date),
+    closed_at: toIsoTimestamp(trade.date),
+    qty: finiteOrNull(trade.qty) || 0,
+    entry: finiteOrNull(trade.entry),
+    exit: finiteOrNull(trade.exit),
+    pnl: finiteOrNull(trade.pnl) || 0,
+    source_pnl: finiteOrNull(trade.sourcePnl),
+    currency: trade.currency || "UNC",
+    source_currency: trade.sourceCurrency || null,
+    aud_pnl: finiteOrNull(trade.audPnl),
+    fx_rate_to_aud: finiteOrNull(trade.fxRateToAud),
+    setup: trade.setup || "Unclassified",
+    notes: trade.notes || "",
+    raw: trade
+  };
+}
+
+function cloudRowToTrade(row) {
+  const raw = row.raw && typeof row.raw === "object" ? row.raw : {};
+  const trade = {
+    ...raw,
+    id: row.id,
+    serial: row.serial || raw.serial || "",
+    date: raw.date || row.closed_at || "",
+    symbol: row.symbol || raw.symbol || "Unknown",
+    side: row.side || raw.side || "",
+    qty: Number(row.qty || raw.qty || 0),
+    entry: Number(row.entry ?? raw.entry ?? 0),
+    exit: Number(row.exit ?? raw.exit ?? 0),
+    pnl: Number(row.pnl || raw.pnl || 0),
+    currency: row.currency || raw.currency || "UNC",
+    setup: row.setup || raw.setup || "Unclassified",
+    notes: row.notes || raw.notes || "",
+    openedAt: raw.openedAt || row.opened_at || row.closed_at || "",
+    sourcePnl: Number(row.source_pnl ?? raw.sourcePnl ?? row.pnl ?? 0),
+    sourceCurrency: row.source_currency || raw.sourceCurrency || row.currency || raw.currency
+  };
+  if (Number.isFinite(Number(row.aud_pnl))) trade.audPnl = Number(row.aud_pnl);
+  if (Number.isFinite(Number(row.fx_rate_to_aud))) trade.fxRateToAud = Number(row.fx_rate_to_aud);
+  return trade;
+}
+
+function cashFlowToCloudRow(flow, userId) {
+  const fingerprint = flow.id || [flow.date, flow.description, flow.type, flow.amount, flow.currency].join("|");
+  return {
+    user_id: userId,
+    fingerprint,
+    occurred_at: toIsoTimestamp(flow.date),
+    description: flow.description || "",
+    type: flow.type === "withdrawal" ? "withdrawal" : "deposit",
+    amount: finiteOrNull(flow.amount) || 0,
+    currency: flow.currency || "UNC"
+  };
+}
+
+function cloudRowToCashFlow(row) {
+  return {
+    id: row.fingerprint || row.id,
+    date: row.occurred_at || "",
+    description: row.description || "",
+    type: row.type || "deposit",
+    amount: Number(row.amount || 0),
+    currency: row.currency || "UNC"
+  };
+}
+
+function balanceToCloudRow(balance, userId) {
+  const fingerprint = balance.id || [balance.date, balance.currency, balance.balance, balance.order].join("|");
+  return {
+    user_id: userId,
+    fingerprint,
+    recorded_at: toIsoTimestamp(balance.date),
+    currency: balance.currency || "UNC",
+    balance: finiteOrNull(balance.balance) || 0,
+    row_order: Number.isFinite(Number(balance.order)) ? Number(balance.order) : null
+  };
+}
+
+function cloudRowToBalance(row) {
+  return {
+    id: row.fingerprint || row.id,
+    date: row.recorded_at || "",
+    currency: row.currency || "UNC",
+    balance: Number(row.balance || 0),
+    order: Number.isFinite(Number(row.row_order)) ? Number(row.row_order) : 0
+  };
+}
+
+async function syncLocalToCloud() {
+  const user = requireAuthUser();
+  renderAuthState("Syncing up...");
+  await upsertRows("trades", state.trades.map((trade) => tradeToCloudRow(trade, user.id)), "user_id,fingerprint");
+  state.cashFlows ||= [];
+  await upsertRows("cash_flows", state.cashFlows.map((flow) => cashFlowToCloudRow(flow, user.id)), "user_id,fingerprint");
+  state.statementBalances ||= [];
+  await upsertRows("statement_balances", state.statementBalances.map((balance) => balanceToCloudRow(balance, user.id)), "user_id,fingerprint");
+  renderAuthState("Synced");
+}
+
+async function loadCloudToLocal() {
+  requireAuthUser();
+  renderAuthState("Loading cloud...");
+  const [trades, cashFlows, balances] = await Promise.all([
+    supabaseRequest("/rest/v1/trades?select=*&order=closed_at.asc"),
+    supabaseRequest("/rest/v1/cash_flows?select=*&order=occurred_at.asc"),
+    supabaseRequest("/rest/v1/statement_balances?select=*&order=recorded_at.asc")
+  ]);
+  state.trades = (trades || []).map(cloudRowToTrade);
+  state.cashFlows = (cashFlows || []).map(cloudRowToCashFlow);
+  state.statementBalances = (balances || []).map(cloudRowToBalance);
+  const currencies = getCurrencies();
+  state.activeCurrency = currencies.length > 1 ? AUD_VIEW : currencies[0] || "";
+  state.symbolFilter = "";
+  state.calendarMonth = "";
+  save();
+  render();
+  renderAuthState("Cloud loaded");
+}
+
+async function runAuthAction(action) {
+  try {
+    await action();
+  } catch (error) {
+    renderAuthState(error.message || "Cloud action failed");
+  }
 }
 
 function convertTradeForView(trade) {
@@ -1976,6 +2263,11 @@ els.resetBtn.addEventListener("click", () => {
   save();
   render();
 });
+els.signInBtn?.addEventListener("click", () => runAuthAction(signIn));
+els.signUpBtn?.addEventListener("click", () => runAuthAction(signUp));
+els.signOutBtn?.addEventListener("click", () => runAuthAction(signOut));
+els.syncUpBtn?.addEventListener("click", () => runAuthAction(syncLocalToCloud));
+els.syncDownBtn?.addEventListener("click", () => runAuthAction(loadCloudToLocal));
 els.exportBtn.addEventListener("click", exportActiveJournal);
 els.currencySelect.addEventListener("change", (event) => {
   state.activeCurrency = event.target.value;
@@ -2203,3 +2495,4 @@ window.addEventListener("resize", () => {
 });
 
 load();
+restoreAuthSession();
